@@ -356,57 +356,76 @@
             <button class="btn" onclick="setAnimation('wobble')">Wobble</button>
             <button class="btn" onclick="setAnimation('orbit')">Orbit</button>
             <button class="btn" onclick="setAnimation('chaos')">🎲 Chaos</button>
-            <button class="btn download-btn" onclick="downloadScreenshot()">📷 Download</button>
+            <button class="btn download-btn" onclick="downloadScreenshot()">🎬 Record GIF</button>
         </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js"></script>
     <script>
-        // Download screenshot function
+        // Download animated GIF function
         async function downloadScreenshot() {
             const btn = document.querySelector('.download-btn');
             const originalText = btn.textContent;
-            btn.textContent = '⏳ Capturing...';
             btn.disabled = true;
 
-            try {
-                // Pause animations temporarily
-                const wrapper = document.getElementById('logoWrapper');
-                const scene = document.querySelector('.scene');
-                const computedStyle = window.getComputedStyle(wrapper);
-                const currentTransform = computedStyle.transform;
-                
-                // Store current animation state
-                const currentAnimation = wrapper.style.animation;
-                wrapper.style.animation = 'none';
-                wrapper.style.transform = currentTransform;
+            const wrapper = document.getElementById('logoWrapper');
+            const scene = document.querySelector('.scene');
+            
+            // GIF settings
+            const frames = 30;
+            const frameDelay = 100; // ms between frames in GIF
+            const captureInterval = 80; // ms between captures
 
-                // Capture the scene
-                const canvas = await html2canvas(scene, {
-                    backgroundColor: null,
-                    scale: 2,
-                    logging: false,
-                    useCORS: true,
-                    allowTaint: true
+            try {
+                // Create GIF encoder
+                const gif = new GIF({
+                    workers: 2,
+                    quality: 10,
+                    width: 350,
+                    height: 350,
+                    workerScript: 'https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.worker.js'
                 });
 
-                // Restore animation
-                wrapper.style.transform = '';
-                wrapper.style.animation = currentAnimation;
+                // Capture frames
+                for (let i = 0; i < frames; i++) {
+                    btn.textContent = `🎬 Frame ${i + 1}/${frames}`;
+                    
+                    const canvas = await html2canvas(scene, {
+                        backgroundColor: '#1a1a2e',
+                        scale: 1,
+                        logging: false,
+                        useCORS: true,
+                        allowTaint: true
+                    });
+                    
+                    gif.addFrame(canvas, { delay: frameDelay });
+                    
+                    // Wait for next frame
+                    await new Promise(resolve => setTimeout(resolve, captureInterval));
+                }
 
-                // Download the image
-                const link = document.createElement('a');
-                link.download = 'openhands-3d-logo.png';
-                link.href = canvas.toDataURL('image/png');
-                link.click();
+                btn.textContent = '⚙️ Creating GIF...';
 
-                btn.textContent = '✅ Downloaded!';
-                setTimeout(() => {
-                    btn.textContent = originalText;
-                    btn.disabled = false;
-                }, 2000);
+                // Render GIF
+                gif.on('finished', function(blob) {
+                    const link = document.createElement('a');
+                    link.download = 'openhands-3d-logo.gif';
+                    link.href = URL.createObjectURL(blob);
+                    link.click();
+                    URL.revokeObjectURL(link.href);
+
+                    btn.textContent = '✅ Downloaded!';
+                    setTimeout(() => {
+                        btn.textContent = originalText;
+                        btn.disabled = false;
+                    }, 2000);
+                });
+
+                gif.render();
+
             } catch (error) {
-                console.error('Screenshot failed:', error);
+                console.error('GIF creation failed:', error);
                 btn.textContent = '❌ Failed';
                 setTimeout(() => {
                     btn.textContent = originalText;
