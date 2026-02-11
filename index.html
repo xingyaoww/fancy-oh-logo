@@ -314,6 +314,15 @@
             background: linear-gradient(135deg, #feca57, #ff6b6b);
             color: #1a1a2e;
         }
+
+        .btn.download-btn {
+            background: linear-gradient(135deg, #48dbfb, #0abde3);
+            color: #1a1a2e;
+        }
+
+        .btn.download-btn:hover {
+            background: linear-gradient(135deg, #74e8ff, #48dbfb);
+        }
     </style>
 </head>
 <body>
@@ -347,10 +356,65 @@
             <button class="btn" onclick="setAnimation('wobble')">Wobble</button>
             <button class="btn" onclick="setAnimation('orbit')">Orbit</button>
             <button class="btn" onclick="setAnimation('chaos')">🎲 Chaos</button>
+            <button class="btn download-btn" onclick="downloadScreenshot()">📷 Download</button>
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script>
+        // Download screenshot function
+        async function downloadScreenshot() {
+            const btn = document.querySelector('.download-btn');
+            const originalText = btn.textContent;
+            btn.textContent = '⏳ Capturing...';
+            btn.disabled = true;
+
+            try {
+                // Pause animations temporarily
+                const wrapper = document.getElementById('logoWrapper');
+                const scene = document.querySelector('.scene');
+                const computedStyle = window.getComputedStyle(wrapper);
+                const currentTransform = computedStyle.transform;
+                
+                // Store current animation state
+                const currentAnimation = wrapper.style.animation;
+                wrapper.style.animation = 'none';
+                wrapper.style.transform = currentTransform;
+
+                // Capture the scene
+                const canvas = await html2canvas(scene, {
+                    backgroundColor: null,
+                    scale: 2,
+                    logging: false,
+                    useCORS: true,
+                    allowTaint: true
+                });
+
+                // Restore animation
+                wrapper.style.transform = '';
+                wrapper.style.animation = currentAnimation;
+
+                // Download the image
+                const link = document.createElement('a');
+                link.download = 'openhands-3d-logo.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+
+                btn.textContent = '✅ Downloaded!';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.disabled = false;
+                }, 2000);
+            } catch (error) {
+                console.error('Screenshot failed:', error);
+                btn.textContent = '❌ Failed';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.disabled = false;
+                }, 2000);
+            }
+        }
+
         // Create floating particles
         const particlesContainer = document.getElementById('particles');
         for (let i = 0; i < 50; i++) {
