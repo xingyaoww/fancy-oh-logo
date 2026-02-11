@@ -346,6 +346,7 @@
             <button class="btn" onclick="setAnimation('flip')">Flip</button>
             <button class="btn" onclick="setAnimation('wobble')">Wobble</button>
             <button class="btn" onclick="setAnimation('orbit')">Orbit</button>
+            <button class="btn" onclick="setAnimation('chaos')">🎲 Chaos</button>
         </div>
     </div>
 
@@ -406,6 +407,57 @@
         let styleEl = document.createElement('style');
         document.head.appendChild(styleEl);
 
+        // Chaos mode variables
+        let chaosInterval = null;
+        let chaosActive = false;
+
+        function generateRandomKeyframes() {
+            const keyframes = [];
+            const numKeyframes = 6 + Math.floor(Math.random() * 4); // 6-9 keyframes
+            
+            for (let i = 0; i <= numKeyframes; i++) {
+                const percent = Math.round((i / numKeyframes) * 100);
+                const rotateX = Math.floor(Math.random() * 720) - 360; // -360 to 360
+                const rotateY = Math.floor(Math.random() * 720) - 360;
+                const rotateZ = Math.floor(Math.random() * 180) - 90; // -90 to 90
+                const scale = 0.8 + Math.random() * 0.4; // 0.8 to 1.2
+                
+                keyframes.push(`${percent}% { transform: rotateX(${rotateX}deg) rotateY(${rotateY}deg) rotateZ(${rotateZ}deg) scale(${scale.toFixed(2)}); }`);
+            }
+            
+            return `@keyframes chaosAnim { ${keyframes.join(' ')} }`;
+        }
+
+        function startChaosMode() {
+            chaosActive = true;
+            const wrapper = document.getElementById('logoWrapper');
+            
+            function updateChaos() {
+                if (!chaosActive) return;
+                
+                const randomDuration = 1.5 + Math.random() * 2; // 1.5-3.5 seconds
+                const randomEasing = ['ease-in-out', 'ease-in', 'ease-out', 'linear', 'cubic-bezier(0.68, -0.55, 0.265, 1.55)'][Math.floor(Math.random() * 5)];
+                
+                styleEl.textContent = generateRandomKeyframes();
+                wrapper.style.animation = 'none';
+                wrapper.offsetHeight;
+                wrapper.style.animation = `chaosAnim ${randomDuration}s ${randomEasing}`;
+                
+                // Schedule next random animation
+                chaosInterval = setTimeout(updateChaos, randomDuration * 1000);
+            }
+            
+            updateChaos();
+        }
+
+        function stopChaosMode() {
+            chaosActive = false;
+            if (chaosInterval) {
+                clearTimeout(chaosInterval);
+                chaosInterval = null;
+            }
+        }
+
         function setAnimation(type) {
             const wrapper = document.getElementById('logoWrapper');
             
@@ -413,7 +465,15 @@
             document.querySelectorAll('.btn').forEach(btn => btn.classList.remove('active'));
             event.target.classList.add('active');
             
-            // Update animation
+            // Stop chaos mode if switching away
+            stopChaosMode();
+            
+            if (type === 'chaos') {
+                startChaosMode();
+                return;
+            }
+            
+            // Update animation for non-chaos modes
             styleEl.textContent = animations[type];
             wrapper.style.animation = 'none';
             wrapper.offsetHeight; // Trigger reflow
