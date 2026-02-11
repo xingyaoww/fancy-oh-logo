@@ -361,7 +361,7 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gifshot@0.4.5/dist/gifshot.min.js"></script>
     <script>
         // Download animated GIF function
         async function downloadScreenshot() {
@@ -369,27 +369,17 @@
             const originalText = btn.textContent;
             btn.disabled = true;
 
-            const wrapper = document.getElementById('logoWrapper');
             const scene = document.querySelector('.scene');
             
             // GIF settings
-            const frames = 30;
-            const frameDelay = 100; // ms between frames in GIF
-            const captureInterval = 80; // ms between captures
+            const numFrames = 24;
+            const captureInterval = 120; // ms between captures
+            const images = [];
 
             try {
-                // Create GIF encoder
-                const gif = new GIF({
-                    workers: 2,
-                    quality: 10,
-                    width: 350,
-                    height: 350,
-                    workerScript: 'https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.worker.js'
-                });
-
-                // Capture frames
-                for (let i = 0; i < frames; i++) {
-                    btn.textContent = `🎬 Frame ${i + 1}/${frames}`;
+                // Capture frames as base64 images
+                for (let i = 0; i < numFrames; i++) {
+                    btn.textContent = `🎬 ${i + 1}/${numFrames}`;
                     
                     const canvas = await html2canvas(scene, {
                         backgroundColor: '#1a1a2e',
@@ -399,7 +389,7 @@
                         allowTaint: true
                     });
                     
-                    gif.addFrame(canvas, { delay: frameDelay });
+                    images.push(canvas.toDataURL('image/png'));
                     
                     // Wait for next frame
                     await new Promise(resolve => setTimeout(resolve, captureInterval));
@@ -407,22 +397,32 @@
 
                 btn.textContent = '⚙️ Creating GIF...';
 
-                // Render GIF
-                gif.on('finished', function(blob) {
-                    const link = document.createElement('a');
-                    link.download = 'openhands-3d-logo.gif';
-                    link.href = URL.createObjectURL(blob);
-                    link.click();
-                    URL.revokeObjectURL(link.href);
+                // Create GIF using gifshot
+                gifshot.createGIF({
+                    images: images,
+                    gifWidth: 350,
+                    gifHeight: 350,
+                    interval: 0.1,
+                    numFrames: numFrames,
+                    frameDuration: 1,
+                    sampleInterval: 10,
+                    numWorkers: 2
+                }, function(obj) {
+                    if (!obj.error) {
+                        const link = document.createElement('a');
+                        link.download = 'openhands-3d-logo.gif';
+                        link.href = obj.image;
+                        link.click();
 
-                    btn.textContent = '✅ Downloaded!';
-                    setTimeout(() => {
-                        btn.textContent = originalText;
-                        btn.disabled = false;
-                    }, 2000);
+                        btn.textContent = '✅ Downloaded!';
+                        setTimeout(() => {
+                            btn.textContent = originalText;
+                            btn.disabled = false;
+                        }, 2000);
+                    } else {
+                        throw new Error(obj.errorMsg);
+                    }
                 });
-
-                gif.render();
 
             } catch (error) {
                 console.error('GIF creation failed:', error);
